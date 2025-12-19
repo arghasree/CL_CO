@@ -36,7 +36,7 @@ class RNNModel(nn.Module):
         self.token_amino = {v: k for k, v in AMINO_ACID_DICT.items()}
         self.token_codon = {v: k for k, v in CODON_DICT.items()}
 
-    def forward(self, x, seq_lens, mask):
+    def forward(self, x, seq_lens):
         """
         seq_lens (the actual length of each sequence before padding)
         mask (attention mask)
@@ -73,6 +73,7 @@ def sort_batch_by_length(batch):
     
     seq_lens = torch.sum(cds_data != -100, dim=1)
     seq_lens, sorted_index = torch.sort(seq_lens, descending=True)
+    seq_lens = seq_lens.cpu().to(torch.int64)
 
     aa_data_sorted = []
     cds_data_sorted = []
@@ -143,20 +144,21 @@ def train(train_config, model, train_loader):
             # as it is packed padded so containd max len as max seq len in current batch
             cds_pad_trimmed = get_pad_trimmed_cds_data(cds_data_sorted) 
 
-            total_loss = cross_entropy_loss(output_seq_logits.permute(0,2,1), cds_pad_trimmed.to(rank))
+            loss = cross_entropy_loss(output_seq_logits.permute(0,2,1), cds_pad_trimmed.to(rank))
             # print("Batch CE Loss: ", loss.item())
 
             optimizer.zero_grad()
-            total_loss.backward()
+            loss.backward()
             # gradient descent
             optimizer.step()
 
             # train_batch_count += 1
-            train_loss += total_loss.item()
+            train_loss += loss.item()
 
 
         avg_train_loss = train_loss / len(train_loader)
         train_losses_epoch.append(avg_train_loss)
+        print(f"Epoch {epoch+1}/{num_epochs}, Training Loss: {avg_train_loss:.4f}")
         
     return train_losses_epoch
         
