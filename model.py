@@ -5,7 +5,9 @@ import numpy as np
 from tqdm.auto import tqdm as tqdm
 
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
-from CONSTANTS import AMINO_ACID_DICT, CODON_DICT, SYNONYMOUS_CODONS
+from utils.CONSTANTS import AMINO_ACID_DICT, CODON_DICT, SYNONYMOUS_CODONS
+from utils.get_metrics import get_batch_cai
+
 # Define the PyTorch model class
 class RNNModel(nn.Module):
     def __init__(self):
@@ -36,12 +38,44 @@ class RNNModel(nn.Module):
         self.token_amino = {v: k for k, v in AMINO_ACID_DICT.items()}
         self.token_codon = {v: k for k, v in CODON_DICT.items()}
 
+    def mask_logits(self, logits, seq_lens, amino_seq):
+        # mask = torch.full_like(logits, -1e7)  # Create a mask filled with -1e7
+
+        # for i in range(logits.size(0)):
+        #     valid_codon_indices = [CODON_DICT[codon.lower()] for aa in amino_seq[i][:seq_lens[i]] for codon in SYNONYMOUS_CODONS[self.token_amino[aa.item()]]]
+        #     mask[i, :seq_lens[i], valid_codon_indices] = 0  # Only valid codons get a zero mask
+
+        # return logits + mask  # Add the mask to the logits; invalid logits get reduced to a very low value
+        
+        batch_size = logits.size(0)
+        mask = torch.full_like(logits, -1e9)
+        # print(mask[2, 4:5, :])
+        # Iterate over each example in the batch
+        for batch_idx in range(batch_size):
+            # Iterate over each position in the sequence
+            for pos_idx in range(seq_lens[batch_idx]):
+                # Get the amino acid at the current position
+                amino_acid_idx = amino_seq[batch_idx, pos_idx].item()
+                amino_acid = self.token_amino[amino_acid_idx]
+                # Get the list of valid codon indices for this amino acid
+                valid_codons = SYNONYMOUS_CODONS[amino_acid]
+                valid_codon_indices = [CODON_DICT[codon.lower()] for codon in valid_codons]
+                # print(valid_codon_indices)
+                # Set the mask to 0 (unmask) at the positions of valid codons
+                mask[batch_idx, pos_idx, valid_codon_indices] = 0
+
+        # print(mask[2, 4:5, :])
+        # Apply the mask to the logits
+        masked_logits = logits + mask
+        return masked_logits
+
     def forward(self, x, seq_lens):
         """
         seq_lens (the actual length of each sequence before padding)
         mask (attention mask)
         """
         # x (input) is the amino_seq 
+        amino_seq = x
         x = self.embedding(x) #  performs an embedding lookup, 
         # converting integer token IDs into dense vector representations.
         # from (batch_size, seq_len) to (batch_size, seq_len, embedding_dim)
@@ -63,8 +97,11 @@ class RNNModel(nn.Module):
         output= self.fc4(output)
         output= output.view(x.size(0), -1 , 61)
         output= F.softmax(output, dim=-1)
+        masked_logits = self.mask_logits(output, seq_lens, amino_seq=amino_seq)
+        # print("Masking Done")
+        return masked_logits
 
-        return output
+        # return output
     
     
 def sort_batch_by_length(batch):
@@ -92,19 +129,24 @@ def get_max_seq_len(cds_data):
     return max(seq_lens)
 
 
-def get_pad_trimmed_cds_data(cds_data):
+def get_pad_trimmed_cds_data(cds_data,  max_seq_len):
     # Trim till max_len 
     # Trims padded portion 
     
-    max_seq_len = get_max_seq_len(cds_data)
+    # cds_data_trimmed = [seq[0:max_seq_len] for seq in cds_data]
+    # cds_data_trimmed = torch.stack(cds_data_trimmed)
     
-    cds_data_trimmed = [seq[0:max_seq_len] for seq in cds_data]
+    # return cds_data_trimmed
+    cds_data_trimmed = []
+    for id, seq in enumerate(cds_data):
+        # print(type(seq))
+        cds_data_trimmed.append(seq[0:max_seq_len])
+    
     cds_data_trimmed = torch.stack(cds_data_trimmed)
-    
     return cds_data_trimmed
     
     
-def train(train_config, model, train_loader):
+def train(train_config, model, train_loader, org_weights):
     num_epochs = train_config['num_epochs']
     cross_entropy_loss = train_config['loss_fn']
     optimizer = train_config['optimizer']
@@ -115,12 +157,19 @@ def train(train_config, model, train_loader):
     for epoch in range(num_epochs):
         model.train()
         train_loss = 0
+        train_cai = 0
+        train_cai_gt = 0
+
         for i, batch in enumerate(tqdm(train_loader)):
             aa_data = batch['input_ids']
             cds_data = batch['labels']
     
             aa_data = aa_data.to(rank)
             cds_data = cds_data.to(rank)
+            
+            seq_lens = torch.sum(cds_data != -100, dim=1)
+            seq_lens, sorted_index = torch.sort(seq_lens, descending=True)  
+            max_seq_len = max(seq_lens)
             
             aa_data_sorted, cds_data_sorted, seq_lens = sort_batch_by_length((aa_data, cds_data))
 
@@ -142,7 +191,7 @@ def train(train_config, model, train_loader):
             """
             # Trim padding from cds data to match output_seq_logits dimensions 
             # as it is packed padded so containd max len as max seq len in current batch
-            cds_pad_trimmed = get_pad_trimmed_cds_data(cds_data_sorted) 
+            cds_pad_trimmed = get_pad_trimmed_cds_data(cds_data_sorted, max_seq_len) 
 
             loss = cross_entropy_loss(output_seq_logits.permute(0,2,1), cds_pad_trimmed.to(rank))
             # print("Batch CE Loss: ", loss.item())
@@ -155,10 +204,15 @@ def train(train_config, model, train_loader):
             # train_batch_count += 1
             train_loss += loss.item()
 
+            batch_cai_pred, batch_cai_gt = get_batch_cai(output_seq_logits, cds_data_sorted, seq_lens, org_weights)
+            train_cai += torch.sum(batch_cai_pred).item()
+            train_cai_gt += torch.sum(batch_cai_gt).item()
 
         avg_train_loss = train_loss / len(train_loader)
+        avg_train_cai = train_cai / len(train_loader.dataset)
+        avg_train_cai_gt = train_cai_gt / len(train_loader.dataset)
         train_losses_epoch.append(avg_train_loss)
-        print(f"Epoch {epoch+1}/{num_epochs}, Training Loss: {avg_train_loss:.4f}")
+        print(f"Epoch {epoch+1}/{num_epochs}, Training Loss: {avg_train_loss:.4f}, Training CAI: {avg_train_cai:.4f}, Training CAI GT: {avg_train_cai_gt:.4f}")
         
     return train_losses_epoch
         

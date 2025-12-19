@@ -7,8 +7,8 @@ from sklearn.model_selection import train_test_split
 # from torch.nn.utils.rnn import pad_sequence
 # from wandb import sklearn
 # from data_preprocessing_util import DataPreprocessing
-from CONSTANTS import AMINO_ACID_DICT, CODON_DICT, SYNONYMOUS_CODONS
-
+from utils.CONSTANTS import AMINO_ACID_DICT, CODON_DICT, SYNONYMOUS_CODONS
+from utils.get_metrics import get_CSI_weights
 
 random.seed(42)
 
@@ -21,12 +21,9 @@ if torch.cuda.is_available():
 
 class AminoAcidCodonDataset(Dataset):
     def __init__(self, X, codon_sequences, max_len):
-        # self.aa_sequences = aa_sequences[0]
-        # self.organism_list = aa_sequences[1]
-        self.aa_sequences = [x[0] for x in X]
-        self.organism_list = [x[1] for x in X]
-        self.codon_sequences = codon_sequences
-        self.codon_sequences = codon_sequences
+        self.aa_sequences = [x[0] for x in X][:500]
+        self.organism_list = [x[1] for x in X][:500]
+        self.codon_sequences = codon_sequences[:500]
         self.max_len = max_len
 
     def __len__(self):
@@ -92,11 +89,13 @@ def start_preprocessing(data_file_path):
     val_dataset = AminoAcidCodonDataset(val_aa, val_cds, max_len)
     test_dataset = AminoAcidCodonDataset(test_aa, test_cds, max_len)
     
-    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=1, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
 
-    return train_loader, val_loader, test_loader
+    # get weights value for this organism
+    org_weights = get_CSI_weights(sequences=cds_list)
+    return train_loader, val_loader, test_loader, org_weights
 
 if __name__ == '__main__':
     datafile_path = './cl_dataset/organism=Homo sapiens.csv'

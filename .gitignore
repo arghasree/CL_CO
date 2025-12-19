@@ -4,3 +4,4 @@ data_preprocessing_protbert.py
 clco/
 .DS_Store
 cl_dataset/
+__pycache__/

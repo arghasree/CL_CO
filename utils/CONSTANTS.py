@@ -290,5 +290,18 @@ CODON_BOX_CODON_DICT = {
     }
 
 
-
+ORGANISMS = [
+    "Arabidopsis thaliana",
+    "Bacillus subtilis",
+    "Caenorhabditis elegans",
+    "Chlamydomonas reinhardtii",
+    "Danio rerio",
+    "Drosophila melanogaster",
+    "Homo sapiens",
+    "Mus musculus",
+    "Nicotiana tabacum",
+    "Pseudomonas putida",
+    "Saccharomyces cerevisiae",
+    "Escherichia coli general",
+]
     
