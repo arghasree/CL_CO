@@ -97,11 +97,11 @@ class RNNModel(nn.Module):
         output= self.fc4(output)
         output= output.view(x.size(0), -1 , 61)
         output= F.softmax(output, dim=-1)
-        masked_logits = self.mask_logits(output, seq_lens, amino_seq=amino_seq)
+        # masked_logits = self.mask_logits(output, seq_lens, amino_seq=amino_seq)
         # print("Masking Done")
-        return masked_logits
+        # return masked_logits
 
-        # return output
+        return output
     
     
 def sort_batch_by_length(batch):
@@ -146,7 +146,7 @@ def get_pad_trimmed_cds_data(cds_data,  max_seq_len):
     return cds_data_trimmed
     
     
-def train(train_config, model, train_loader, org_weights):
+def train(train_config, model, train_loader, org_weights, val_loader=None):
     num_epochs = train_config['num_epochs']
     cross_entropy_loss = train_config['loss_fn']
     optimizer = train_config['optimizer']
@@ -164,15 +164,31 @@ def train(train_config, model, train_loader, org_weights):
             aa_data = batch['input_ids']
             cds_data = batch['labels']
     
-            aa_data = aa_data.to(rank)
-            cds_data = cds_data.to(rank)
+            # aa_data = aa_data.to(rank)
+            # cds_data = cds_data.to(rank)
             
             seq_lens = torch.sum(cds_data != -100, dim=1)
             seq_lens, sorted_index = torch.sort(seq_lens, descending=True)  
             max_seq_len = max(seq_lens)
             
-            aa_data_sorted, cds_data_sorted, seq_lens = sort_batch_by_length((aa_data, cds_data))
+            # aa_data_sorted, cds_data_sorted, seq_lens = sort_batch_by_length((aa_data, cds_data))
+            aa_data_sorted = []
+            cds_data_sorted = []
+            for i in range(0, len(sorted_index)):
+                aa_data_sorted.append(aa_data[sorted_index[i]])
+                cds_data_sorted.append(cds_data[sorted_index[i]])
+            
+            # aa_data = sorted(aa_data, key=lambda x: , reverse=True)
+            aa_data_sorted = torch.stack(aa_data_sorted)
+            # print("AA DATA", type(aa_data_sorted))
+            
+            # cds_data = sorted(cds_data, key=lambda x: x.shape[0], reverse=True)
+            cds_data_sorted = torch.stack(cds_data_sorted)
+            # print("CDS DATA", type(cds_data_sorted))
+            
 
+            # print("AA DATA", aa_data_sorted)
+            # print("CDS DATA", cds_data_sorted)
             aa_data_sorted = aa_data_sorted.to(rank)
             cds_data_sorted = cds_data_sorted.to(rank) # sorted sequences by cds length
 
@@ -205,14 +221,61 @@ def train(train_config, model, train_loader, org_weights):
             train_loss += loss.item()
 
             batch_cai_pred, batch_cai_gt = get_batch_cai(output_seq_logits, cds_data_sorted, seq_lens, org_weights)
-            train_cai += torch.sum(batch_cai_pred).item()
-            train_cai_gt += torch.sum(batch_cai_gt).item()
-
-        avg_train_loss = train_loss / len(train_loader)
-        avg_train_cai = train_cai / len(train_loader.dataset)
-        avg_train_cai_gt = train_cai_gt / len(train_loader.dataset)
-        train_losses_epoch.append(avg_train_loss)
-        print(f"Epoch {epoch+1}/{num_epochs}, Training Loss: {avg_train_loss:.4f}, Training CAI: {avg_train_cai:.4f}, Training CAI GT: {avg_train_cai_gt:.4f}")
+            train_cai += torch.mean(batch_cai_pred)
+            train_cai_gt += torch.mean(batch_cai_gt)
         
+        avg_train_loss = train_loss / len(train_loader)
+        avg_train_cai = train_cai / len(train_loader)
+        avg_train_cai_gt = train_cai_gt / len(train_loader)
+        train_losses_epoch.append(avg_train_loss)
+        if val_loader is not None:
+            model.eval()
+            with torch.no_grad():
+                val_loss = 0
+                val_cai = 0
+                val_cai_gt = 0
+                for j, val_batch in enumerate(val_loader):
+                    aa_data = val_batch['input_ids']
+                    cds_data = val_batch['labels']
+                    # print(f'cds data: {cds_data}')
+                    seq_lens = torch.sum(cds_data != -100, dim=1)
+                    seq_lens, sorted_index = torch.sort(seq_lens, descending=True)  
+                    max_seq_len = max(seq_lens)
+
+                    aa_data_sorted = []
+                    cds_data_sorted = []
+                    for i in range(0, len(sorted_index)):
+                        aa_data_sorted.append(aa_data[sorted_index[i]])
+                        cds_data_sorted.append(cds_data[sorted_index[i]])
+                    
+                    aa_data_sorted = torch.stack(aa_data_sorted)
+                    cds_data_sorted = torch.stack(cds_data_sorted)
+
+                    aa_data_sorted = aa_data_sorted.to(rank)
+                    cds_data_sorted = cds_data_sorted.to(rank)
+
+                    output_seq_logits = model(aa_data_sorted, seq_lens)
+
+                    cds_pad_trimmed = get_pad_trimmed_cds_data(cds_data_sorted, max_seq_len) 
+                    # print(output_seq_logits.permute(0,2,1).shape, cds_pad_trimmed.to(rank).shape)
+                    loss = cross_entropy_loss(output_seq_logits.permute(0,2,1), cds_pad_trimmed.to(rank))
+                    val_loss += loss.item()
+
+                    batch_cai_pred, batch_cai_gt = get_batch_cai(output_seq_logits, cds_data_sorted, seq_lens, org_weights)
+                    # print("Batch CAI Pred:", batch_cai_pred)
+                    # print("Batch CAI GT:", batch_cai_gt)
+                    val_cai += torch.mean(batch_cai_pred)
+                    val_cai_gt += torch.mean(batch_cai_gt)
+                
+            avg_val_loss = val_loss / len(val_loader)
+            avg_val_cai = val_cai / len(val_loader)
+            avg_val_cai_gt = val_cai_gt / len(val_loader)
+            # print(f"Epoch {epoch+1}/{num_epochs}, Validation Loss: {avg_val_loss:.4f}, Validation CAI: {avg_val_cai:.4f}, Validation CAI GT: {avg_val_cai_gt:.4f}")
+
+
+
+        print(f'Epoch {epoch+1}/{num_epochs}, Training Loss: {avg_train_loss:.4f}, Training CAI: {avg_train_cai:.6f}, Training CAI GT: {avg_train_cai_gt:.6f}, Validation Loss: {avg_val_loss:.4f}, Validation CAI: {avg_val_cai:.6f}, Validation CAI GT: {avg_val_cai_gt:.6f}' )
+        # print(f"Epoch {epoch+1}/{num_epochs}, Training Loss: {avg_train_loss:.4f}, Training CAI: {avg_train_cai:.4f}, Training CAI GT: {avg_train_cai_gt:.4f}")
+        # print(f'Epoch {epoch+1}/{num_epochs}, Training Loss: {avg_train_loss:.4f}, Validation Loss: {avg_val_loss:.4f}, Validation CAI: {avg_val_cai:.6f}, Validation CAI GT: {avg_val_cai_gt:.6f}' )
     return train_losses_epoch
         

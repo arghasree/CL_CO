@@ -5,3 +5,4 @@ clco/
 .DS_Store
 cl_dataset/
 __pycache__/
+sequences_with_stability_cai.csv

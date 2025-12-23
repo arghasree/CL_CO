@@ -1,0 +1,19 @@
+cl_dataset/organism=Nicotiana tabacum.csv (9771, 9)
+cl_dataset/organism=Homo sapiens.csv (8698, 9)
+cl_dataset/organism=Pseudomonas putida.csv (4982, 9)
+cl_dataset/organism=Bacillus subtilis.csv (4367, 9)
+cl_dataset/organism=Drosophila melanogaster.csv (9368, 9)
+cl_dataset/organism=Escherichia coli general.csv (10337, 9)
+cl_dataset/organism=Saccharomyces cerevisiae.csv (4644, 9)
+cl_dataset/organism=Chlamydomonas reinhardtii.csv (9718, 9)
+cl_dataset/organism=Danio rerio.csv (8762, 9)
+cl_dataset/organism=Caenorhabditis elegans.csv (10487, 9)
+cl_dataset/organism=Arabidopsis thaliana.csv (9923, 9)
+cl_dataset/organism=Mus musculus.csv (8818, 9)
+cl_dataset/organism=hg19.csv (4877, 8)
+                                            sequence  stability_mfe
+0  ATGGCTGTTGCCAAGAGCGACATCAATGCTGAATCATCACTCTGTT...    -442.399994
+1  ATGTCAAAGCCTTCGTCACTTCCTCTTCTTCCATGGCTGCCAACAT...     -99.000000
+2  ATGCTGCATAAGACTGCAACCAAGAAGCCTAATTATTTATCAAATA...    -115.599998
+3  ATGGTTAAGGATGAAAATGGTGGCTGTTTCCTGAAGTATCATCTTA...    -111.800003
+4  ATGACTAGAATAAAACTCTTTGGGAAAGAAATTGAAGTGGAGGAGG...    -121.199997

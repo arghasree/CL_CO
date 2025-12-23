@@ -21,9 +21,9 @@ if torch.cuda.is_available():
 
 class AminoAcidCodonDataset(Dataset):
     def __init__(self, X, codon_sequences, max_len):
-        self.aa_sequences = [x[0] for x in X][:500]
-        self.organism_list = [x[1] for x in X][:500]
-        self.codon_sequences = codon_sequences[:500]
+        self.aa_sequences = [x[0] for x in X][:]
+        self.organism_list = [x[1] for x in X][:]
+        self.codon_sequences = codon_sequences[:]
         self.max_len = max_len
 
     def __len__(self):
@@ -34,7 +34,9 @@ class AminoAcidCodonDataset(Dataset):
 
     def tokenize_codon_sequence(self, codon_seq):
         codons = [codon_seq[i:i+3] for i in range(0, len(codon_seq), 3)]
-        return [CODON_DICT.get(codon, 0) for codon in codons]  # Map codons to integers
+        # print(codons, " --- codons --- ")
+        return [CODON_DICT.get(codon.lower(), 0) for codon in codons]  # Map codons to integers
+    
     def tokenize_organism(self, organism):
         pass #TODO: implement organism tokenization if needed
 
@@ -66,9 +68,17 @@ class AminoAcidCodonDataset(Dataset):
 def start_preprocessing(data_file_path):
     # read data from file
     df = pd.read_csv(data_file_path)
+    ref_cds_list = list(df['dna'])
+    # Only select the rows with normalized_mfe <=-0.3
+    df = df[df['normalized_mfe'] < -0.2]
+    
     cds_list = list(df['dna'])
     aa_list = list(df['protein'])
-    organism_list = list(df['organism'])
+    if 'hg19' in data_file_path:
+        organism_list = ['hg19'] * len(aa_list)
+    else:
+        organism_list = list(df['organism'])
+    
 
     cds_list = [x[:-3] for x in cds_list]  # remove stop codon
     aa_list = [x[:-1] for x in aa_list]  # remove unknown amino acid corresponding to stop codon
@@ -89,12 +99,15 @@ def start_preprocessing(data_file_path):
     val_dataset = AminoAcidCodonDataset(val_aa, val_cds, max_len)
     test_dataset = AminoAcidCodonDataset(test_aa, test_cds, max_len)
     
-    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+    train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=1, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
 
+    print(f'Train samples: {len(train_dataset)}, Validation samples: {len(val_dataset)}, Test samples: {len(test_dataset)}')
+
     # get weights value for this organism
-    org_weights = get_CSI_weights(sequences=cds_list)
+    org_weights = get_CSI_weights(sequences=ref_cds_list)
+    print("Calculated organism weights for loss function.", org_weights)
     return train_loader, val_loader, test_loader, org_weights
 
 if __name__ == '__main__':

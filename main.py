@@ -7,11 +7,11 @@ import os
 def run():
     model = RNNModel()
     train_config = {
-        'num_epochs': 10,
+        'num_epochs': 20,
         'loss_fn': CrossEntropyLoss(),
-        'organism': "Homo sapiens",
+        'organism': "Bacillus subtilis",
         'dataset_dir': "./cl_dataset",
-        'optimizer': optim.Adam(model.parameters(), lr=0.01),
+        'optimizer': optim.Adam(model.parameters(), lr=0.0001),
         'rank': 'cuda:1' if __import__('torch').cuda.is_available() else 'cpu'
     }
     model.to(train_config['rank'])
@@ -24,7 +24,7 @@ def run():
     val_loader has 10562 batches, where each batch has 1 sequence. Input same as train_loader 
     """
     print("Starting training process...")
-    train(train_config, model, train_loader, org_weights)
+    train(train_config, model, train_loader, org_weights, val_loader)
 
 if __name__ == "__main__":
     run()
