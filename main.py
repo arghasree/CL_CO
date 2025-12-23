@@ -3,11 +3,15 @@ from torch.nn import CrossEntropyLoss
 import torch.optim as optim
 from cl_preprocessing import start_preprocessing
 import os
+from loss_fn_changes import *
+
+import os
+os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 
 def run():
     model = RNNModel()
     train_config = {
-        'num_epochs': 20,
+        'num_epochs': 10,
         'loss_fn': CrossEntropyLoss(),
         'organism': "Bacillus subtilis",
         'dataset_dir': "./cl_dataset",

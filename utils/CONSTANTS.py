@@ -304,4 +304,18 @@ ORGANISMS = [
     "Saccharomyces cerevisiae",
     "Escherichia coli general",
 ]
-    
+
+ORGANISM_DICT = {
+    "Arabidopsis thaliana": 0,
+    "Bacillus subtilis": 1,
+    "Caenorhabditis elegans": 2,
+    "Chlamydomonas reinhardtii": 3,
+    "Danio rerio": 4,
+    "Drosophila melanogaster": 5,
+    "Homo sapiens": 6,
+    "Mus musculus": 7,
+    "Nicotiana tabacum": 8,
+    "Pseudomonas putida": 9,
+    "Saccharomyces cerevisiae": 10,
+    "Escherichia coli general": 11,
+}    

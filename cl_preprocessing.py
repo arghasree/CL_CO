@@ -7,7 +7,7 @@ from sklearn.model_selection import train_test_split
 # from torch.nn.utils.rnn import pad_sequence
 # from wandb import sklearn
 # from data_preprocessing_util import DataPreprocessing
-from utils.CONSTANTS import AMINO_ACID_DICT, CODON_DICT, SYNONYMOUS_CODONS
+from utils.CONSTANTS import AMINO_ACID_DICT, CODON_DICT, ORGANISM_DICT
 from utils.get_metrics import get_CSI_weights
 
 random.seed(42)
@@ -38,7 +38,8 @@ class AminoAcidCodonDataset(Dataset):
         return [CODON_DICT.get(codon.lower(), 0) for codon in codons]  # Map codons to integers
     
     def tokenize_organism(self, organism):
-        pass #TODO: implement organism tokenization if needed
+        return ORGANISM_DICT.get(organism, 0)  # Map organism to integers
+        
 
     def create_attention_mask(self, seq_length):
         return [1] * seq_length + [0] * (self.max_len - seq_length)
@@ -46,10 +47,10 @@ class AminoAcidCodonDataset(Dataset):
     def __getitem__(self, idx):
         aa_seq = self.aa_sequences[idx]
         codon_seq = self.codon_sequences[idx]
-
+        organism = self.organism_list[idx]
         aa_tokens = self.tokenize_aa_sequence(aa_seq)
         codon_tokens = self.tokenize_codon_sequence(codon_seq)
-
+        organism_token = self.tokenize_organism(organism)
         # Create attention mask
         attention_mask = self.create_attention_mask(len(aa_tokens))
 
@@ -60,6 +61,7 @@ class AminoAcidCodonDataset(Dataset):
         return {
             'input_ids': torch.tensor(aa_tokens[:self.max_len], dtype=torch.long),
             'attention_mask': torch.tensor(attention_mask, dtype=torch.long),
+            'organism_id': torch.tensor(organism_token, dtype=torch.long),
             'labels': torch.tensor(codon_tokens[:self.max_len], dtype=torch.long)
         }
 
@@ -99,9 +101,9 @@ def start_preprocessing(data_file_path):
     val_dataset = AminoAcidCodonDataset(val_aa, val_cds, max_len)
     test_dataset = AminoAcidCodonDataset(test_aa, test_cds, max_len)
     
-    train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=1, shuffle=False)
-    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
+    train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True, drop_last=False)
+    val_loader = DataLoader(val_dataset, batch_size=1, shuffle=False, drop_last=False)
+    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, drop_last=False)
 
     print(f'Train samples: {len(train_dataset)}, Validation samples: {len(val_dataset)}, Test samples: {len(test_dataset)}')
 
