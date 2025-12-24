@@ -21,9 +21,9 @@ if torch.cuda.is_available():
 
 class AminoAcidCodonDataset(Dataset):
     def __init__(self, X, codon_sequences, max_len):
-        self.aa_sequences = [x[0] for x in X][:]
-        self.organism_list = [x[1] for x in X][:]
-        self.codon_sequences = codon_sequences[:]
+        self.aa_sequences = [x[0] for x in X][:200]
+        self.organism_list = [x[1] for x in X][:200]
+        self.codon_sequences = codon_sequences[:200]
         self.max_len = max_len
 
     def __len__(self):
@@ -43,6 +43,45 @@ class AminoAcidCodonDataset(Dataset):
 
     def create_attention_mask(self, seq_length):
         return [1] * seq_length + [0] * (self.max_len - seq_length)
+
+    def get_sample(self, sample_size):
+        sample_idx = random.sample(range(len(self.aa_sequences)), sample_size)
+        # take sample 
+        # sampled_aa = [self.aa_sequences[i] for i in sample_idx]
+        # sampled_codon = [self.codon_sequences[i] for i in sample_idx]
+        # organism = [self.organism_list[i] for i in sample_idx]
+        sampled_aa = [self.aa_sequences[i] for i in sample_idx]
+        sampled_codon = [self.codon_sequences[i] for i in sample_idx]
+        sampled_organism = [self.organism_list[i] for i in sample_idx]
+        # print("Sampled organisms:", sampled_organism)
+        
+        max_len_a = max(len(seq) for seq in sampled_aa)
+        max_len_c = max(len(seq)//3 for seq in sampled_codon)
+        
+        sampled_aa = [self.tokenize_aa_sequence(aa_seq) for aa_seq in sampled_aa]
+        sampled_codon = [self.tokenize_codon_sequence(codon_seq) for codon_seq in sampled_codon]
+        sampled_organism = [self.tokenize_organism(org) for org in sampled_organism]
+        # print("Sampled organism tokens:", sampled_organism)
+        sampled_aa = [aa_tokens + [0] * (max_len_a - len(aa_tokens)) for aa_tokens in sampled_aa]
+        sampled_codon = [codon_tokens + [-100] * (max_len_c - len(codon_tokens)) for codon_tokens in sampled_codon]
+
+        return torch.tensor(sampled_aa, dtype=torch.long), torch.tensor(sampled_codon, dtype=torch.long), torch.tensor(sampled_organism, dtype=torch.long)
+        # return sampled_aa[:self.max_len], sampled_codon[:self.max_len], sampled_organism [:self.max_len]       
+        # # padding
+        # sampled_aa_padded = []
+        # sampled_codon_padded = []
+        # for aa_tokens, codon_tokens in zip(sampled_aa, sampled_codon):
+        #     aa_tokens += [0] * (self.max_len - len(aa_tokens))
+        #     codon_tokens += [-100] * (self.max_len - len(codon_tokens))
+        #     sampled_aa_padded.append(aa_tokens[:self.max_len])
+        #     sampled_codon_padded.append(codon_tokens[:self.max_len])
+        
+        # return {
+        #     'input_ids': torch.tensor(sampled_aa_padded, dtype=torch.long),
+        #     'organism_id': torch.tensor(sampled_organism, dtype=torch.long),
+        #     'labels': torch.tensor(sampled_codon_padded, dtype=torch.long)
+        # }
+
 
     def __getitem__(self, idx):
         aa_seq = self.aa_sequences[idx]
@@ -72,7 +111,7 @@ def start_preprocessing(data_file_path):
     df = pd.read_csv(data_file_path)
     ref_cds_list = list(df['dna'])
     # Only select the rows with normalized_mfe <=-0.3
-    df = df[df['normalized_mfe'] < -0.2]
+    # df = df[df['normalized_mfe'] < -0.2]
     
     cds_list = list(df['dna'])
     aa_list = list(df['protein'])
@@ -101,7 +140,7 @@ def start_preprocessing(data_file_path):
     val_dataset = AminoAcidCodonDataset(val_aa, val_cds, max_len)
     test_dataset = AminoAcidCodonDataset(test_aa, test_cds, max_len)
     
-    train_loader = DataLoader(train_dataset, batch_size=128, shuffle=True, drop_last=False)
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, drop_last=False)
     val_loader = DataLoader(val_dataset, batch_size=1, shuffle=False, drop_last=False)
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, drop_last=False)
 
@@ -109,7 +148,7 @@ def start_preprocessing(data_file_path):
 
     # get weights value for this organism
     org_weights = get_CSI_weights(sequences=ref_cds_list)
-    print("Calculated organism weights for loss function.", org_weights)
+    # print("Calculated organism weights for loss function.", org_weights)
     return train_loader, val_loader, test_loader, org_weights
 
 if __name__ == '__main__':

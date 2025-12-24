@@ -28,9 +28,9 @@ class RNNModel(nn.Module):
         self.bn1 = nn.BatchNorm1d(128)
         # self.tanh = nn.ReLU()
         #tanh
-        self.tanh_1 = nn.ReLU()
-        self.tanh_2 = nn.ReLU()
-        self.tanh_3 = nn.ReLU()
+        self.tanh_1 = nn.LeakyReLU()
+        self.tanh_2 = nn.LeakyReLU()
+        self.tanh_3 = nn.LeakyReLU()
         self.fc2 = nn.Linear(128, 256) 
         self.bn2 = nn.BatchNorm1d(256)
         self.fc3 = nn.Linear(256, 128)
@@ -112,7 +112,7 @@ class RNNModel(nn.Module):
         output= self.tanh_3(output)
         output= self.fc4(output)
         output= output.view(x.size(0), -1 , 61)
-        # output= F.softmax(output, dim=-1)
+        output= F.softmax(output, dim=-1)
         # masked_logits = self.mask_logits(output, seq_lens, amino_seq=amino_seq)
         # print("Masking Done")
         # return masked_logits
@@ -228,9 +228,11 @@ def train(train_config, model, train_loader, org_weights, val_loader=None):
             # as it is packed padded so containd max len as max seq len in current batch
             cds_pad_trimmed = get_pad_trimmed_cds_data(cds_data_sorted, max_seq_len) 
             
-        
-            
-            loss = loss_fn(output_seq_logits.permute(0,2,1), cds_pad_trimmed.to(rank))
+            if train_config['train'] == 'second':
+                old_task_parameters = train_config['old_task_parameters']
+                loss = loss_fn(output_seq_logits.permute(0,2,1), cds_pad_trimmed, old_task_parameters, model)
+            else:
+                loss = loss_fn(output_seq_logits.permute(0,2,1), cds_pad_trimmed.to(rank))
             # print("Batch CE Loss: ", loss.item())
 
             optimizer.zero_grad()

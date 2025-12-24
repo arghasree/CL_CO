@@ -1,0 +1,64 @@
+{
+  "evaluation_matrix": {
+    "cai": {
+      "Bacillus subtilis": {
+        "Bacillus subtilis": 0.9492154717445374
+      },
+      "Pseudomonas putida": {
+        "Bacillus subtilis": 0.7228240966796875,
+        "Pseudomonas putida": 0.991026759147644
+      }
+    },
+    "cai_gt": {
+      "Bacillus subtilis": {
+        "Bacillus subtilis": 0.7851082682609558
+      },
+      "Pseudomonas putida": {
+        "Bacillus subtilis": 0.7851082682609558,
+        "Pseudomonas putida": 0.6348949074745178
+      }
+    }
+  },
+  "cl_metrics": {
+    "avg_cai_final": 0.8569254279136658,
+    "avg_cai_gt_final": 0.7100015878677368,
+    "forgetting": 0.22639137506484985,
+    "forgetting_gt": 0.0,
+    "backward_transfer": -0.22639137506484985,
+    "backward_transfer_gt": 0.0,
+    "learning_accuracy": 0.9701211154460907,
+    "learning_accuracy_gt": 0.7100015878677368,
+    "final_per_task": {
+      "Bacillus subtilis": 0.7228240966796875,
+      "Pseudomonas putida": 0.991026759147644
+    },
+    "final_per_task_gt": {
+      "Bacillus subtilis": 0.7851082682609558,
+      "Pseudomonas putida": 0.6348949074745178
+    }
+  },
+  "numpy_matrix_cai": [
+    [
+      0.9492154717445374,
+      0.0
+    ],
+    [
+      0.7228240966796875,
+      0.991026759147644
+    ]
+  ],
+  "numpy_matrix_cai_gt": [
+    [
+      0.7851082682609558,
+      0.0
+    ],
+    [
+      0.7851082682609558,
+      0.6348949074745178
+    ]
+  ],
+  "organisms": [
+    "Bacillus subtilis",
+    "Pseudomonas putida"
+  ]
+}
