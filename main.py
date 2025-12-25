@@ -16,7 +16,7 @@ def run():
     train_config = {
         'num_epochs': 2,
         'loss_fn': CrossEntropyLoss(),
-        'organism': ["Bacillus subtilis", "Pseudomonas putida"],
+        'organism': ["Bacillus subtilis", "Pseudomonas putida", "Homo sapiens"],
         'cl_strategy': 'EWC', # Options: 'normal', 'EWC', 'L2'
         'dataset_dir': "./cl_dataset",
         'optimizer': optim.Adam(model.parameters(), lr=0.01),

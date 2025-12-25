@@ -2,63 +2,90 @@
   "evaluation_matrix": {
     "cai": {
       "Bacillus subtilis": {
-        "Bacillus subtilis": 0.9492154717445374
+        "Bacillus subtilis": 0.9397519826889038
       },
       "Pseudomonas putida": {
-        "Bacillus subtilis": 0.7228240966796875,
-        "Pseudomonas putida": 0.991026759147644
+        "Bacillus subtilis": 0.7321719527244568,
+        "Pseudomonas putida": 0.9796326160430908
+      },
+      "Homo sapiens": {
+        "Bacillus subtilis": 0.6853079795837402,
+        "Pseudomonas putida": 0.6403447985649109,
+        "Homo sapiens": 0.9435631632804871
       }
     },
     "cai_gt": {
       "Bacillus subtilis": {
-        "Bacillus subtilis": 0.7851082682609558
+        "Bacillus subtilis": 0.7800423502922058
       },
       "Pseudomonas putida": {
-        "Bacillus subtilis": 0.7851082682609558,
-        "Pseudomonas putida": 0.6348949074745178
+        "Bacillus subtilis": 0.7800423502922058,
+        "Pseudomonas putida": 0.6223976612091064
+      },
+      "Homo sapiens": {
+        "Bacillus subtilis": 0.7800423502922058,
+        "Pseudomonas putida": 0.6223976612091064,
+        "Homo sapiens": 0.7727497816085815
       }
     }
   },
   "cl_metrics": {
-    "avg_cai_final": 0.8569254279136658,
-    "avg_cai_gt_final": 0.7100015878677368,
-    "forgetting": 0.22639137506484985,
+    "avg_cai_final": 0.7564053138097128,
+    "avg_cai_gt_final": 0.7250632643699646,
+    "forgetting": 0.29686591029167175,
     "forgetting_gt": 0.0,
-    "backward_transfer": -0.22639137506484985,
+    "backward_transfer": -0.29686591029167175,
     "backward_transfer_gt": 0.0,
-    "learning_accuracy": 0.9701211154460907,
-    "learning_accuracy_gt": 0.7100015878677368,
+    "learning_accuracy": 0.9543159206708273,
+    "learning_accuracy_gt": 0.7250632643699646,
     "final_per_task": {
-      "Bacillus subtilis": 0.7228240966796875,
-      "Pseudomonas putida": 0.991026759147644
+      "Bacillus subtilis": 0.6853079795837402,
+      "Pseudomonas putida": 0.6403447985649109,
+      "Homo sapiens": 0.9435631632804871
     },
     "final_per_task_gt": {
-      "Bacillus subtilis": 0.7851082682609558,
-      "Pseudomonas putida": 0.6348949074745178
+      "Bacillus subtilis": 0.7800423502922058,
+      "Pseudomonas putida": 0.6223976612091064,
+      "Homo sapiens": 0.7727497816085815
     }
   },
   "numpy_matrix_cai": [
     [
-      0.9492154717445374,
+      0.9397519826889038,
+      0.0,
       0.0
     ],
     [
-      0.7228240966796875,
-      0.991026759147644
+      0.7321719527244568,
+      0.9796326160430908,
+      0.0
+    ],
+    [
+      0.6853079795837402,
+      0.6403447985649109,
+      0.9435631632804871
     ]
   ],
   "numpy_matrix_cai_gt": [
     [
-      0.7851082682609558,
+      0.7800423502922058,
+      0.0,
       0.0
     ],
     [
-      0.7851082682609558,
-      0.6348949074745178
+      0.7800423502922058,
+      0.6223976612091064,
+      0.0
+    ],
+    [
+      0.7800423502922058,
+      0.6223976612091064,
+      0.7727497816085815
     ]
   ],
   "organisms": [
     "Bacillus subtilis",
-    "Pseudomonas putida"
+    "Pseudomonas putida",
+    "Homo sapiens"
   ]
 }

@@ -2,13 +2,13 @@
 CONTINUAL LEARNING EVALUATION SUMMARY
 ================================================================================
 
-Average CAI (final):        0.8569
-Average CAI_GT (final):     0.7100
-Forgetting (CAI):           0.2264
+Average CAI (final):        0.7564
+Average CAI_GT (final):     0.7251
+Forgetting (CAI):           0.2969
 Forgetting (CAI_GT):        0.0000
-Backward Transfer (CAI):    -0.2264
+Backward Transfer (CAI):    -0.2969
 Backward Transfer (CAI_GT): 0.0000
-Learning Accuracy (CAI):    0.9701
-Learning Accuracy (CAI_GT): 0.7100
+Learning Accuracy (CAI):    0.9543
+Learning Accuracy (CAI_GT): 0.7251
 
 ================================================================================
