@@ -5,7 +5,8 @@ from cl_preprocessing import start_preprocessing
 import os
 # from loss_fn_changes import *
 # from cl_strategy.ewc import train_cl_ewc
-from cl_strategy.ewc_with_evaluations import train_cl_ewc
+from cl_strategy.ewc import train_cl_ewc
+from cl_strategy.joint import train_joint_multitask_simple as train_joint
 from utils.util import loss_plot, cai_plot
 
 import os
@@ -16,8 +17,9 @@ def run():
     train_config = {
         'num_epochs': 2,
         'loss_fn': CrossEntropyLoss(),
-        'organism': ["Bacillus subtilis", "Pseudomonas putida", "Homo sapiens"],
-        'cl_strategy': 'EWC', # Options: 'normal', 'EWC', 'L2'
+        # 'organism': ["Bacillus subtilis", "Pseudomonas putida", "Caenorhabditis elegans", "Escherichia coli general", "Saccharomyces cerevisiae"],
+        'organism': ["Pseudomonas putida", "Bacillus subtilis"],
+        'cl_strategy': 'joint', # Options: 'normal', 'EWC', 'L2', 'joint'
         'dataset_dir': "./cl_dataset",
         'optimizer': optim.Adam(model.parameters(), lr=0.01),
         'rank': 'cuda:1' if __import__('torch').cuda.is_available() else 'cpu'
@@ -51,25 +53,28 @@ def run():
 
         print("Starting CL training process using EWC strategy...")
         loss, val_cai, val_cai_gt , _, _= train_cl_ewc(train_config, model, train_loader, val_loader, org_weights)
-        print(loss)
-        print(val_cai)
-        print(val_cai_gt)
+        # print(loss)
+        # print(val_cai)
+        # print(val_cai_gt)
 
         # loss_plot(loss, train_config['num_epochs'])
         # cai_plot(val_cai, train_config['num_epochs'], len(train_config['organism']))
-    
     elif train_config['cl_strategy'] == 'L2':
-        for i, org in enumerate(train_config['organism']):
+        pass
+    elif train_config['cl_strategy'] == 'joint':
+        train_loader = {}
+        val_loader = {}
+        test_loader = {}
+        org_weights = {}
+        for org in train_config['organism']:
             print(f"Preparing data for organism: {org}")
             datafile_path = os.path.join(train_config['dataset_dir'], f"organism={org}.csv")
             train_l, val_l, test_l, org_w = start_preprocessing(datafile_path)
-            if i == 0:
-                train(train_config, model, train_l, org_w, val_l)
-                old_task_parameters = [p.clone().detach() for p in model.parameters()]
-            else:
-                train_config['loss_fn'] = loss_cross_entropy_plus_l2
-                
-                
+            train_loader[org] = train_l
+            val_loader[org] = val_l
+            test_loader[org] = test_l
+            org_weights[org] = org_w
+        train_joint(train_config, model, train_loader, val_loader, org_weights, save_path="./results/joint")
 
 if __name__ == "__main__":
     run()
