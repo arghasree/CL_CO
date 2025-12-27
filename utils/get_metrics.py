@@ -74,6 +74,7 @@ def get_batch_cai(output_seq_logits, cds_data_sorted, seq_lens, org_weights, tes
         trimmed_output_seq = predicted_output_logits[i][:seq_lens[i]]
        
         predicted_seq = convert_index_to_codons(trimmed_output_seq)
+        # print("Predicted Seq:", predicted_seq)
         output_batch_cai.append(CAI(predicted_seq, org_weights))
         # output_batch_cai.append(get_CSI_value(predicted_seq, org_weights))
         trimmed_target_seq = cds_data_sorted[i][:seq_lens[i]]

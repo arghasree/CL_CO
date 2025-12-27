@@ -20,3 +20,21 @@ def cai_plot(x, epochs, num_task):
     plt.legend([f'Task {i+1}' for i in range(num_task)])
     plt.savefig('cl_accuracy_plot.png')
     # plt.show()
+    
+def save_model(model, path):
+    import torch
+    torch.save(model.state_dict(), path)
+    
+def load_model(model, path, rank):
+    import torch
+    model.load_state_dict(torch.load(path, map_location=rank))
+    model.to(rank)
+    return model
+
+def save_csv_from_list_of_lists(data, cols, path):
+    import pandas as pd
+    df = pd.DataFrame(data,).T
+    if cols:
+        df.columns = cols
+    print(df.head())
+    # df.to_csv(path, index=False)

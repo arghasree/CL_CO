@@ -7,6 +7,7 @@ import os
 # from cl_strategy.ewc import train_cl_ewc
 from cl_strategy.ewc import train_cl_ewc
 from cl_strategy.joint import train_joint_multitask_simple as train_joint
+from cl_strategy.ncl import train_naive_continual_learning
 from utils.util import loss_plot, cai_plot
 
 import os
@@ -19,7 +20,7 @@ def run():
         'loss_fn': CrossEntropyLoss(),
         # 'organism': ["Bacillus subtilis", "Pseudomonas putida", "Caenorhabditis elegans", "Escherichia coli general", "Saccharomyces cerevisiae"],
         'organism': ["Pseudomonas putida", "Bacillus subtilis"],
-        'cl_strategy': 'joint', # Options: 'normal', 'EWC', 'L2', 'joint'
+        'cl_strategy': 'ncl', # Options: 'normal', 'EWC', 'L2', 'joint', 'ncl'
         'dataset_dir': "./cl_dataset",
         'optimizer': optim.Adam(model.parameters(), lr=0.01),
         'rank': 'cuda:1' if __import__('torch').cuda.is_available() else 'cpu'
@@ -28,7 +29,7 @@ def run():
     model.to(train_config['rank'])
     
     if train_config['cl_strategy'] == 'normal':
-        datafile_path = os.path.join(train_config['dataset_dir'], f"organism={train_config['organism']}.csv")
+        datafile_path = os.path.join(train_config['dataset_dir'], f"organism={train_config['organism'][0]}.csv")
         train_loader, val_loader, test_loader, org_weights = start_preprocessing(datafile_path) 
         """
         train_loader has 661 batches where each batch has 64 sequences. Input example: tensor([11,  2, 17,  ...,  0,  0,  0])
@@ -75,6 +76,21 @@ def run():
             test_loader[org] = test_l
             org_weights[org] = org_w
         train_joint(train_config, model, train_loader, val_loader, org_weights, save_path="./results/joint")
+    elif train_config['cl_strategy'] == 'ncl':
+        train_loader = {}
+        val_loader = {}
+        test_loader = {}
+        org_weights = {}
+        for org in train_config['organism']:
+            print(f"Preparing data for organism: {org}")
+            datafile_path = os.path.join(train_config['dataset_dir'], f"organism={org}.csv")
+            train_l, val_l, test_l, org_w = start_preprocessing(datafile_path)
+            train_loader[org] = train_l
+            val_loader[org] = val_l
+            test_loader[org] = test_l
+            org_weights[org] = org_w
+        
+        train_naive_continual_learning(train_config, model, train_loader, val_loader, org_weights, save_path="./results/ncl")
 
 if __name__ == "__main__":
     run()
