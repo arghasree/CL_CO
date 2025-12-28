@@ -8,6 +8,7 @@ import os
 from cl_strategy.ewc import train_cl_ewc
 from cl_strategy.joint import train_joint_multitask_simple as train_joint
 from cl_strategy.ncl import train_naive_continual_learning
+from cl_strategy.adapter_rnn import train_adapter_continual_learning, RNNModelWithAdapters  
 from utils.util import loss_plot, cai_plot
 
 import os
@@ -20,7 +21,7 @@ def run():
         'loss_fn': CrossEntropyLoss(),
         # 'organism': ["Bacillus subtilis", "Pseudomonas putida", "Caenorhabditis elegans", "Escherichia coli general", "Saccharomyces cerevisiae"],
         'organism': ["Pseudomonas putida", "Bacillus subtilis"],
-        'cl_strategy': 'ncl', # Options: 'normal', 'EWC', 'L2', 'joint', 'ncl'
+        'cl_strategy': 'adapter', # Options: 'normal', 'EWC', 'L2', 'joint', 'ncl', 'adapter'
         'dataset_dir': "./cl_dataset",
         'optimizer': optim.Adam(model.parameters(), lr=0.01),
         'rank': 'cuda:1' if __import__('torch').cuda.is_available() else 'cpu'
@@ -91,6 +92,22 @@ def run():
             org_weights[org] = org_w
         
         train_naive_continual_learning(train_config, model, train_loader, val_loader, org_weights, save_path="./results/ncl")
+    elif train_config['cl_strategy'] == 'adapter': 
+        train_loader = {}
+        val_loader = {}
+        test_loader = {}
+        org_weights = {}
+        for org in train_config['organism']:
+            print(f"Preparing data for organism: {org}")
+            datafile_path = os.path.join(train_config['dataset_dir'], f"organism={org}.csv")
+            train_l, val_l, test_l, org_w = start_preprocessing(datafile_path)
+            train_loader[org] = train_l
+            val_loader[org] = val_l
+            test_loader[org] = test_l
+            org_weights[org] = org_w
+        
+        train_adapter_continual_learning(train_config, train_loader, val_loader, org_weights, save_path="./results/adapter")
+
 
 if __name__ == "__main__":
     run()
