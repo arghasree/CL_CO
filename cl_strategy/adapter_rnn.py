@@ -526,7 +526,7 @@ def train_adapter_continual_learning(train_config, train_loader, val_loader, org
     # Adapter configuration
     adapter_bottleneck_dim = train_config.get('adapter_bottleneck_dim', 64)
     gru_adapter_dim = train_config.get('gru_adapter_dim', 128)
-    adapter_placement = train_config.get('adapter_placement', 'fc_only')
+    adapter_placement = train_config.get('adapter_placement', 'both')
     
     # Initialize model
     print("\n" + "="*80)
